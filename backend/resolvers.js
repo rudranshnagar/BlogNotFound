@@ -6,6 +6,10 @@ import {
   blogs as blogCollection,
   comments as commentCollection,
 } from "./config/mongoCollections.js";
+import { Client } from "@elastic/elasticsearch";
+import bcrypt from "bcrypt";
+
+const client = new Client({ node: "http://localhost:9200" });
 
 export const resolvers = {
   Query: {
@@ -15,7 +19,7 @@ export const resolvers = {
       //validate
 
       const users = await userCollection();
-      const user = await users.findOne({ email: email, password: password });
+      const user = await users.findOne({ email: email });
       if (!user) {
         throw new GraphQLError(
           "Could not find the user with provided email/password",
@@ -25,7 +29,17 @@ export const resolvers = {
         );
       }
 
-      return user;
+      const match = await bcrypt.compare(password, user.password);
+      if (match) {
+        return user;
+      } else {
+        throw new GraphQLError(
+          "Could not find the user with provided email/password",
+          {
+            extensions: { code: "NOT_FOUND", statusCode: 404 },
+          }
+        );
+      }
     },
     getUser: async (_, args) => {
       let { userId } = args;
@@ -43,9 +57,8 @@ export const resolvers = {
       return user;
     },
     searchUserByName: async (_, args) => {
-      // validate
-
-      let { searchTerm } = args;
+      // Validate
+      let { selfId, searchTerm } = args;
 
       if (!searchTerm) {
         return [];
@@ -54,7 +67,6 @@ export const resolvers = {
       searchTerm = searchTerm.toLowerCase();
 
       const users = await userCollection();
-
       const allUsers = await users.find().toArray();
 
       const matchedUsersSet = new Set();
@@ -62,13 +74,15 @@ export const resolvers = {
       allUsers.forEach((user) => {
         const fnameLower = user.fname.toLowerCase();
         const lnameLower = user.lname.toLowerCase();
+
         if (
-          fnameLower.includes(searchTerm) ||
-          lnameLower.includes(searchTerm)
+          user._id !== selfId &&
+          (fnameLower.includes(searchTerm) || lnameLower.includes(searchTerm))
         ) {
           matchedUsersSet.add(user);
         }
       });
+
       const matchedUsers = Array.from(matchedUsersSet);
       return matchedUsers;
     },
@@ -161,6 +175,74 @@ export const resolvers = {
       });
 
       return commentsWithBlogId;
+    },
+    getBlogsByTag: async (_, args) => {
+      let { tag } = args;
+
+      if (!tag) {
+        return [];
+      }
+
+      const blogs = await blogCollection();
+
+      const matchedBlogs = await blogs.find({ tag: tag }).toArray();
+
+      return matchedBlogs;
+    },
+    getTags: async (_, args) => {
+      const blogs = await blogCollection();
+      try {
+        const uniqueTags = await blogs.distinct("tag");
+        return uniqueTags;
+      } catch (error) {
+        console.error(error);
+        throw new Error("Error fetching unique tags");
+      }
+    },
+    // elastic search
+    searchBlogs: async (_, args) => {
+      let { searchTerm } = args;
+
+      searchTerm = searchTerm.toLowerCase();
+
+      try {
+        const result = await client.search({
+          index: "newtest",
+          body: {
+            query: {
+              bool: {
+                should: [
+                  { wildcard: { content: `*${searchTerm}*` } },
+                  { wildcard: { title: `*${searchTerm}*` } },
+                ],
+              },
+            },
+          },
+        });
+
+        // const result = await client.search({
+        //   index: "newtest",
+        //   body: {
+        //     query: {
+        //       wildcard: { content: `*${searchTerm}*` },
+        //       wildcard: { title: `*${searchTerm}*`}
+        //     },
+        //   },
+        // });
+
+        const hits = result.hits.hits.map((hit) => hit._id);
+
+        const blogs = await blogCollection();
+
+        const matchedBlogs = await blogs.find({ _id: { $in: hits } }).toArray();
+
+        return matchedBlogs;
+      } catch (error) {
+        console.error(error);
+        throw new GraphQLError(`searchBlogs: Error searching blogs`, {
+          extensions: { statusCode: 500, code: "INTERNAL_SERVER_ERROR" },
+        });
+      }
     },
   },
   Mutation: {
@@ -369,9 +451,15 @@ export const resolvers = {
 
       return updateSelfAfter;
     },
+    // elastic search
     createBlog: async (_, args) => {
-      let { title, image, content, userId } = args;
+      let { title, image, content, userId, tag } = args;
       // validate
+
+      if (!tag) {
+        tag = "";
+      }
+      tag = tag.toLowerCase().trim();
 
       const blogs = await blogCollection();
 
@@ -383,6 +471,7 @@ export const resolvers = {
         date: new Date(),
         likes: [],
         userId,
+        tag,
       };
 
       let insertedBlog = await blogs.insertOne(newBlog);
@@ -391,10 +480,21 @@ export const resolvers = {
           extensions: { statusCode: 400, code: "INTERNAL_SERVER_ERROR" },
         });
       }
+
+      const elastic = await client.index({
+        index: "newtest",
+        id: newBlog._id,
+        body: {
+          title: title,
+          content: content,
+        },
+      });
+
       return newBlog;
     },
+    // elastic search
     editBlog: async (_, args) => {
-      let { _id, userId, title, content } = args;
+      let { _id, userId, image, title, content } = args;
 
       // validate
 
@@ -419,6 +519,10 @@ export const resolvers = {
         updateFields.content = content;
       }
 
+      if (image !== undefined && image != null) {
+        updateFields.image = image;
+      }
+
       updateFields.date = new Date();
 
       const updateResult = await blogs.updateOne(
@@ -434,8 +538,20 @@ export const resolvers = {
 
       const updatedBlog = await blogs.findOne({ _id: _id });
 
+      const elastic = await client.update({
+        index: "newtest",
+        id: updatedBlog._id,
+        body: {
+          doc: {
+            title: updatedBlog.title,
+            content: updatedBlog.content,
+          },
+        },
+      });
+
       return updatedBlog;
     },
+    // elastic search
     removeBlog: async (_, args) => {
       let { _id } = args;
 
@@ -486,9 +602,13 @@ export const resolvers = {
         });
       }
 
+      const elastic = await client.delete({
+        index: "newtest",
+        id: _id,
+      });
+
       return blog;
     },
-
     saveBlog: async (_, args) => {
       let { blogId, userId } = args;
 
