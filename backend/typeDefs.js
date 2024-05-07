@@ -63,6 +63,10 @@ type User {
       email: String
       password: String
       bio: String): User
+    
+    removeUser(
+      _id: String!
+    ): User
 
     followUser(
       selfId: String!
@@ -88,7 +92,8 @@ type User {
       tag: String ): Blog
     
     removeBlog( 
-      _id: String!): Blog
+      _id: String!
+      userId: String! ): Blog
     
     saveBlog(
       blogId: String!
@@ -112,6 +117,7 @@ type User {
       comment: String!): Comment
     
     removeComment(
-      commentId: String!): Comment
+      commentId: String!
+      userId: String!): Comment
   }
 `;
