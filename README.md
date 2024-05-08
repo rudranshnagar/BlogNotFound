@@ -1,6 +1,17 @@
 # BlogNotFound
 
-To set-up Elastic Search:
+Blog Not Found : ( One of a Kind Blog Website )
+
+# To start the Website
+
+- start elastic search, by default it will start @ localhost:9200
+- Go to /backend, run npm i to install dependencies
+- Go to /frontend, run npm i to install dependencies
+- To seed the database, go to /backend/utils, run node seeder.js
+- Go /backend, run "npm start" to start Backend, the server will be available @ localhost:4000
+- Go to /frontend, run "npm run dev", the server will be available @ localhost:3000
+
+# To set-up Elastic Search:
 
 1. Download elastic search: https://www.elastic.co/downloads/elasticsearch
 2. Open terminal at Folder
