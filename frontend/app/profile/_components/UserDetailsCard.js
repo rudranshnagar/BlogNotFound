@@ -38,10 +38,11 @@ const UserDetailsCard = ({ data }) => {
           className="rounded-full w-40 h-40 mr-8 border border-white"
         />
         <div className="text-white text-xl font-bold">{`${data.fname} ${data.lname}`}</div>
-        <Link href="/profile/edit">
-          <button className="ml-5 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700">
-            Edit Profile
-          </button>
+        <Link
+          href="/profile/edit"
+          className="ml-5 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700"
+        >
+          Edit Profile
         </Link>
         <button onClick={handleDelete} className="ml-5">
           <MdDeleteOutline size={30} />

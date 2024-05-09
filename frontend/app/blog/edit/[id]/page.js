@@ -12,6 +12,7 @@ import {
   validateTitle,
   validateContent,
 } from "../../../validations";
+import { validate } from "uuid";
 
 const Page = ({ params }) => {
   const { id } = params;
@@ -23,12 +24,19 @@ const Page = ({ params }) => {
   const [image, setImage] = useState(null);
   const [limage, setLimage] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [showEditor, setShowEditor] = useState(false);
   const [bstatus, setBstatus] = useState("Edit Blog");
 
   const fetchData = async () => {
     if (session) {
       try {
+        if (!validate(id.trim())) {
+          setError("400: BAD INPUT");
+          setLoading(false);
+          return;
+        }
+
         const response = await request(
           "http://localhost:4000",
           queries.GET_BLOG,
@@ -37,7 +45,9 @@ const Page = ({ params }) => {
           }
         );
         if (!response) {
-          setError("Blog details not found");
+          setError("404: Blog details not found");
+          setLoading(false);
+          return;
         }
         setTitle(response.getBlog.title);
         setText(response.getBlog.content);
@@ -45,8 +55,11 @@ const Page = ({ params }) => {
         setImage(response.getBlog.image);
         setTag(response.getBlog.tag);
         setShowEditor(true);
+        setLoading(false);
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching data:", error);
+        setError(`404: ${error.response.errors[0].message}`);
+        setLoading(false);
       }
     }
   };
@@ -119,6 +132,17 @@ const Page = ({ params }) => {
       console.error(error);
     }
   };
+
+  if (loading)
+    return (
+      <p className="text-center mt-10 text-lg text-gray-600">Loading...</p>
+    );
+  if (error)
+    return (
+      <h1 className="text-center mt-10 text-2xl text-pink-600 font-bold">
+        {error}
+      </h1>
+    );
 
   return (
     <div>
