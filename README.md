@@ -4,10 +4,14 @@
 
 # To start the Website
 
+- It is preferable to use in Incognito Mode to avoid browser extensions and cache memory
+- .env file is provided in the zip file
 - start elastic search, by default it will start @ localhost:9200
 - Go to /backend, run npm i to install dependencies
 - Go to /frontend, run npm i to install dependencies
-- To seed the database, go to /backend/utils, run node seeder.js
+- To seed the database, /backend, run npm run seed
+  - For windows, "seed": "node utils\\seeder.js"
+  - For mac, "seed": "node utils/seeder.js"
 - Go /backend, run "npm start" to start Backend, the server will be available @ localhost:4000
 - Go to /frontend, run "npm run dev", the server will be available @ localhost:3000
 
