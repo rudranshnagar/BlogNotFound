@@ -1,6 +1,6 @@
 # BlogNotFound
 
-Blog Not Found : ( One of a Kind Blog Website )
+< Blog Not Found /> : One of a Kind Blog Website
 
 # To start the Website
 

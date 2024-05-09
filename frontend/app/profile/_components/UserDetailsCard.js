@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MdDeleteOutline } from "react-icons/md";
@@ -9,6 +10,7 @@ import { signOut } from "next-auth/react";
 
 const UserDetailsCard = ({ data }) => {
   const router = useRouter();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleDelete = async () => {
     try {
@@ -25,6 +27,14 @@ const UserDetailsCard = ({ data }) => {
     } catch (error) {
       console.error(error);
     }
+  };
+
+  const openDeleteModal = () => {
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
   };
 
   return (
@@ -44,10 +54,34 @@ const UserDetailsCard = ({ data }) => {
         >
           Edit Profile
         </Link>
-        <button onClick={handleDelete} className="ml-5">
+        <button onClick={openDeleteModal} className="ml-5">
           <MdDeleteOutline size={30} />
         </button>
       </div>
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-10 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-8 rounded-md shadow-md">
+            <p className="mb-4 text-black">Are you sure you want to delete?</p>
+            <p className="mb-4 text-black font-bold">
+              All data including Blogs and Comments will be deleted.{" "}
+            </p>
+            <div className="flex justify-center">
+              <button
+                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mr-4"
+                onClick={handleDelete}
+              >
+                Delete
+              </button>
+              <button
+                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                onClick={closeDeleteModal}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col space-y-4 text-gray-300">
         <div className="border-b border-dashed border-gray-400 pb-2">
           <h2 className="text-lg font-medium">Personal Details</h2>

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import queries from "../../../queries";
 import { request } from "graphql-request";
 import NewComment from "./NewComment";
@@ -44,6 +45,7 @@ const BlogPostCard = ({ blogData, authorData, userData }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(blogData.likes.length);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     setUserId(userData._id);
@@ -88,6 +90,14 @@ const BlogPostCard = ({ blogData, authorData, userData }) => {
     }
   };
 
+  const openDeleteModal = () => {
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+  };
+
   const handleDelete = async () => {
     if (!userId) {
       console.error("User ID not set.");
@@ -114,10 +124,6 @@ const BlogPostCard = ({ blogData, authorData, userData }) => {
 
   return (
     <div className="mt-5 ml-5 mr-5 flex flex-col rounded-xl p-10 shadow-md">
-      <link
-        rel="stylesheet"
-        href="https://unpkg.com/react-quill@1.3.3/dist/quill.snow.css"
-      />
       <img
         src={blogData.image}
         className="w-full h-56 aspect-ratio aspect-square object-cover"
@@ -150,7 +156,7 @@ const BlogPostCard = ({ blogData, authorData, userData }) => {
           )}
         </div>
 
-        <button onClick={handleDelete}>
+        <button onClick={openDeleteModal}>
           {authorData._id === userData._id && <RiDeleteBin6Line size={30} />}
         </button>
       </div>
@@ -161,6 +167,32 @@ const BlogPostCard = ({ blogData, authorData, userData }) => {
         </h4>
         <h4>{authorData?.bio}</h4>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-10 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-8 rounded-md shadow-md">
+            <p className="mb-4 text-black">
+              Are you sure you want to delete this post?
+            </p>
+            <div className="flex justify-center">
+              <button
+                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mr-4"
+                onClick={handleDelete}
+              >
+                Delete
+              </button>
+              <button
+                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                onClick={closeDeleteModal}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <hr className="mt-5" />
       <h1 className="mt-2 text-center text-xl font-bold leading-9 tracking-tight text-white">
         &lt; Comment Section /&gt;
